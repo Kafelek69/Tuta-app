@@ -1,26 +1,64 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+:root,
+html[data-theme="dark"] {
+  --app-bg: #121212;
+  --app-grid: rgba(255, 255, 255, 0.03);
+  --app-text: #e0e0e0;
+  --app-panel: #222222e6;
+  --app-panel-border: rgba(255, 255, 255, 0.06);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+html[data-theme="light"] {
+  --app-bg: #f2f4f8;
+  --app-grid: rgba(0, 0, 0, 0.04);
+  --app-text: #111111;
+  --app-panel: #ffffffea;
+  --app-panel-border: rgba(0, 0, 0, 0.08);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@theme {
+  --color-cs-dark: #121212;
+  --color-cs-gray: #1e1e1e;
+  --color-cs-panel: #222222;
+  --color-cs-orange: #fca000;
+  --color-cs-orange-dim: #c77e00;
+  --color-cs-text: #e0e0e0;
+}
+
+@layer base {
+  body {
+    background-color: var(--app-bg);
+    color: var(--app-text);
+    background-image: 
+      linear-gradient(var(--app-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--app-grid) 1px, transparent 1px);
+    background-size: 30px 30px;
+    background-position: 0 0;
+    text-transform: uppercase;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  .cs-panel {
+    background-color: var(--app-panel);
+    border-color: var(--app-panel-border);
+    @apply border box-border;
+  }
+  
+  .cs-btn {
+    @apply bg-[#fca000] text-black font-bold uppercase tracking-wider py-3 px-6 hover:bg-[#c77e00] transition-colors border-2 border-transparent hover:border-white/20;
+  }
+}
+
+@keyframes grow {
+  from {
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+  to {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
 }
