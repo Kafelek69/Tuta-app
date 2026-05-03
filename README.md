@@ -1,36 +1,36 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Tuta 📱 – Twoje centrum codzienności
 
-## Getting Started
+**Tuta** to polska super-aplikacja (Super App) inspirowana modelem ekosystemu WeChat. Projekt ma na celu zintegrowanie komunikacji, płatności mobilnych oraz usług codziennych w jednej, spójnej platformie.
 
-First, run the development server:
+> „Wszystko, czego potrzebujesz, jest właśnie tutaj.”
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🚀 Główne Filary Aplikacji
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 💬 Komunikacja (Tuta Chat)
+* **Wiadomości błyskawiczne:** Szyfrowany czat tekstowy, głosowy i wideo.
+* **Tuta Moments:** Prywatna oś czasu dla Twoich znajomych.
+* **Kanały Oficjalne:** Bezpośredni kontakt z ulubionymi markami i instytucjami.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 💳 Finanse (Tuta Pay)
+* **Płatności QR:** Szybkie płatności w sklepach stacjonarnych i punktach usługowych.
+* **Przelewy P2P:** Przesyłaj pieniądze znajomym w trakcie rozmowy na czacie.
+* **Integracja BLIK:** Wsparcie dla najpopularniejszego systemu płatności w Polsce.
 
-## Learn More
+### 🧩 Mini-Programy (Ekosystem)
+Otwarta platforma dla partnerów. Zamawiaj jedzenie, rezerwuj wizyty u lekarza, kupuj bilety komunikacji miejskiej – wszystko bez instalowania dodatkowych aplikacji.
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🛠 Technologia
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Aplikacja jest rozwijana w nowoczesnym stosie technologicznym:
 
-## Deploy on Vercel
+- **Frontend:** React Native / Flutter (zapewniający natywne doświadczenie na iOS i Android)
+- **Backend:** Node.js (Microservices) / Go
+- **Bazy danych:** PostgreSQL, Redis
+- **Real-time:** WebSockets / gRPC
+- **Infrastruktura:** Docker, Kubernetes
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
