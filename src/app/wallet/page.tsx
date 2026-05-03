@@ -1,197 +1,154 @@
-﻿"use client";
-
-import React, { useEffect, useRef, useState } from "react";
+"use client";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, Contact, QrCode, ScanLine, Wallet } from "lucide-react";
-import { QRCodeCanvas } from "qrcode.react";
+import { ArrowDownLeft, ArrowUpRight, ChevronLeft, CreditCard, Plus, Send, Wallet, X } from "lucide-react";
 
-type Mode = "nfc" | "scan" | "show";
-
-type NdefReaderLike = {
-  scan: () => Promise<void>;
-  onreading?: ((event: { serialNumber?: string; message?: { records?: Array<{ recordType: string; data?: BufferSource }> } }) => void) | null;
-};
-
-declare global {
-  interface Window {
-    NDEFReader?: new () => NdefReaderLike;
-    BarcodeDetector?: new (options?: { formats?: string[] }) => { detect: (source: CanvasImageSource) => Promise<Array<{ rawValue?: string }>> };
-  }
-}
+type Transaction = { id: number; amount: number; type: string; description: string; created_at: string };
 
 export default function WalletPage() {
-  const [mode, setMode] = useState<Mode>("nfc");
-  const [nfcSupported, setNfcSupported] = useState(false);
-  const [nfcStatus, setNfcStatus] = useState("Przyłóż telefon do terminala NFC.");
-  const [scanSupported, setScanSupported] = useState(false);
-  const [scanStatus, setScanStatus] = useState("Uruchom kamerę i zeskanuj kod QR.");
-  const [scannedValue, setScannedValue] = useState("");
+  const [balance, setBalance] = useState(0);
+  const [history, setHistory] = useState<Transaction[]>([]);
+  const [showTopup, setShowTopup] = useState(false);
+  const [showTransfer, setShowTransfer] = useState(false);
+  const [amount, setAmount] = useState("");
+  const [to, setTo] = useState("");
+  const [desc, setDesc] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const cameraStreamRef = useRef<MediaStream | null>(null);
-  const rafRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    setNfcSupported(typeof window !== "undefined" && Boolean(window.NDEFReader));
-    setScanSupported(typeof window !== "undefined" && Boolean(window.BarcodeDetector) && Boolean(navigator.mediaDevices?.getUserMedia));
-    return () => stopCamera();
-  }, []);
-
-  const startNfc = async () => {
-    if (!window.NDEFReader) {
-      setNfcStatus("Twoja przeglądarka nie obsługuje Web NFC.");
-      return;
-    }
-
-    try {
-      const reader = new window.NDEFReader();
-      await reader.scan();
-      setNfcStatus("Skanowanie NFC aktywne. Przyłóż telefon do znacznika.");
-      reader.onreading = (event) => {
-        const serial = event.serialNumber ? `Tag: ${event.serialNumber}` : "Tag NFC odczytany.";
-        setNfcStatus(`${serial} Płatność zatwierdzona.`);
-      };
-    } catch {
-      setNfcStatus("Nie udało się uruchomić NFC. Sprawdź uprawnienia.");
-    }
+  const load = async () => {
+    const res = await fetch("/api/wallet/balance");
+    const data = (await res.json()) as { balance: number; history: Transaction[] };
+    setBalance(data.balance || 0);
+    setHistory(data.history || []);
+    setLoading(false);
   };
 
-  const stopCamera = () => {
-    if (rafRef.current) {
-      cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
-    }
-    if (cameraStreamRef.current) {
-      cameraStreamRef.current.getTracks().forEach((track) => track.stop());
-      cameraStreamRef.current = null;
-    }
+  useEffect(() => { load(); }, []);
+
+  const doTopup = async () => {
+    setError("");
+    const res = await fetch("/api/wallet/topup", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount: Number(amount) }),
+    });
+    if (!res.ok) { const d = await res.json(); setError(d.error || "Błąd"); return; }
+    setAmount(""); setShowTopup(false); await load();
   };
 
-  const startQrScan = async () => {
-    if (!window.BarcodeDetector || !navigator.mediaDevices?.getUserMedia) {
-      setScanStatus("Skanowanie QR nie jest wspierane na tym urządzeniu.");
-      return;
-    }
-
-    try {
-      setScannedValue("");
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: "environment" } },
-      });
-      cameraStreamRef.current = stream;
-
-      if (!videoRef.current) {
-        setScanStatus("Nie udało się uruchomić podglądu kamery.");
-        return;
-      }
-
-      videoRef.current.srcObject = stream;
-      await videoRef.current.play();
-      setScanStatus("Skanowanie aktywne...");
-
-      const detector = new window.BarcodeDetector({ formats: ["qr_code"] });
-
-      const detectFrame = async () => {
-        if (!videoRef.current) {
-          return;
-        }
-
-        try {
-          const barcodes = await detector.detect(videoRef.current);
-          const first = barcodes[0]?.rawValue;
-          if (first) {
-            setScannedValue(first);
-            setScanStatus("Kod QR zeskanowany pomyślnie.");
-            stopCamera();
-            return;
-          }
-        } catch {
-          setScanStatus("Błąd podczas skanowania. Spróbuj ponownie.");
-          stopCamera();
-          return;
-        }
-
-        rafRef.current = requestAnimationFrame(detectFrame);
-      };
-
-      rafRef.current = requestAnimationFrame(detectFrame);
-    } catch {
-      setScanStatus("Brak dostępu do kamery. Zezwól na aparat.");
-    }
+  const doTransfer = async () => {
+    setError("");
+    const res = await fetch("/api/wallet/transfer", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount: Number(amount), to, description: desc || `Przelew do ${to}` }),
+    });
+    if (!res.ok) { const d = await res.json(); setError(d.error || "Błąd"); return; }
+    setAmount(""); setTo(""); setDesc(""); setShowTransfer(false); await load();
   };
 
-  const paymentQrValue = "superapp://pay?merchant=PL-SKLEP-01&amount=23.99&currency=PLN";
+  const quickAmounts = [50, 100, 200, 500];
 
   return (
-    <div className="min-h-[100dvh] max-w-md mx-auto p-4 flex flex-col gap-4">
-      <header className="flex items-center gap-3 cs-panel p-4 rounded-md">
-        <Link href="/" className="text-cs-orange hover:bg-white/5 p-2 rounded-full transition-colors">
-          <ChevronLeft size={28} />
+    <div className="min-h-[100dvh] max-w-md mx-auto flex flex-col px-3 pt-3 pb-24 safe-bottom">
+      <header className="cs-header animate-fadeInUp">
+        <Link href="/" className="t-accent p-2 rounded-full hover:bg-white/5 transition-colors">
+          <ChevronLeft size={24} />
         </Link>
-        <h1 className="text-lg font-bold tracking-widest uppercase flex items-center gap-2">
-          <Wallet size={18} className="text-cs-orange" />
-          Płatności
-        </h1>
+        <div className="flex-1">
+          <h1 className="text-base font-black tracking-[0.2em]">PORTFEL</h1>
+          <p className="text-[10px] t-tertiary tracking-wider mt-0.5">TWOJE FINANSE</p>
+        </div>
+        <Wallet size={20} className="t-accent" />
       </header>
 
-      <div className="grid grid-cols-3 gap-2 bg-[#181818] p-1 rounded-xl">
-        <button onClick={() => setMode("nfc")} className={`py-2 rounded-lg text-xs tracking-widest font-bold ${mode === "nfc" ? "bg-cs-orange text-black" : "text-white/70"}`}>
-          NFC
-        </button>
-        <button onClick={() => setMode("scan")} className={`py-2 rounded-lg text-xs tracking-widest font-bold ${mode === "scan" ? "bg-cs-orange text-black" : "text-white/70"}`}>
-          SKAN QR
-        </button>
-        <button onClick={() => setMode("show")} className={`py-2 rounded-lg text-xs tracking-widest font-bold ${mode === "show" ? "bg-cs-orange text-black" : "text-white/70"}`}>
-          MÓJ QR
-        </button>
+      {/* Balance card */}
+      <div className="mt-4 rounded-2xl p-6 animate-fadeInUp stagger-1 relative overflow-hidden"
+        style={{ background: "linear-gradient(135deg, rgba(252,160,0,0.2), var(--app-panel))", border: "1px solid rgba(252,160,0,0.2)" }}>
+        <p className="text-[10px] t-tertiary tracking-[0.2em] font-bold">SALDO</p>
+        <div className="text-4xl font-black mt-1">
+          {loading ? "..." : balance.toLocaleString("pl-PL", { minimumFractionDigits: 2 })} <span className="t-accent text-2xl">PLN</span>
+        </div>
+        <div className="mt-5 flex gap-3">
+          <button onClick={() => { setShowTopup(true); setError(""); }} className="flex-1 cs-btn rounded-xl !py-2.5 text-xs flex items-center justify-center gap-2">
+            <Plus size={14} /> DOŁADUJ
+          </button>
+          <button onClick={() => { setShowTransfer(true); setError(""); }} className="flex-1 cs-btn-outline rounded-xl !py-2.5 text-xs flex items-center justify-center gap-2">
+            <Send size={14} /> WYŚLIJ
+          </button>
+        </div>
       </div>
 
-      {mode === "nfc" && (
-        <section className="cs-panel rounded-xl p-5 flex-1 flex flex-col items-center justify-center text-center gap-4">
-          <Contact size={64} className="text-cs-orange" />
-          <p className="text-sm text-white/85 normal-case">{nfcStatus}</p>
-          <button onClick={startNfc} className="cs-btn rounded-md w-full" disabled={!nfcSupported}>
-            {nfcSupported ? "Uruchom NFC" : "NFC niedostępne"}
-          </button>
-          {!nfcSupported && <p className="text-xs text-white/50 normal-case">Web NFC działa głównie na Android + Chrome.</p>}
-        </section>
-      )}
-
-      {mode === "scan" && (
-        <section className="cs-panel rounded-xl p-4 flex-1 flex flex-col gap-3">
-          <div className="flex items-center gap-2 text-white/80">
-            <ScanLine size={18} className="text-cs-orange" />
-            <p className="text-sm normal-case">{scanStatus}</p>
+      {/* Quick actions */}
+      <div className="mt-4 grid grid-cols-3 gap-3 animate-fadeInUp stagger-2">
+        {[
+          { icon: <CreditCard size={20} />, label: "Karta" },
+          { icon: <ArrowDownLeft size={20} />, label: "Przyjmij" },
+          { icon: <ArrowUpRight size={20} />, label: "Inwestuj" },
+        ].map((a) => (
+          <div key={a.label} className="cs-card p-4 flex flex-col items-center gap-2 cursor-pointer active:scale-95 transition-transform">
+            <div className="t-accent">{a.icon}</div>
+            <span className="text-[9px] font-bold tracking-wider t-secondary">{a.label}</span>
           </div>
+        ))}
+      </div>
 
-          <div className="bg-black rounded-lg overflow-hidden border border-white/10 min-h-[280px] flex items-center justify-center">
-            <video ref={videoRef} className="w-full h-[280px] object-cover" muted playsInline />
-          </div>
-
-          <button onClick={startQrScan} className="cs-btn rounded-md w-full" disabled={!scanSupported}>
-            {scanSupported ? "Start skanowania" : "Skaner niedostępny"}
-          </button>
-          <button onClick={stopCamera} className="border border-white/20 rounded-md py-3 text-sm font-bold tracking-widest">
-            Zatrzymaj kamerę
-          </button>
-
-          {scannedValue ? (
-            <div className="bg-[#151515] border border-cs-orange/40 rounded-md p-3">
-              <p className="text-xs text-white/60 mb-1">Zeskanowany kod:</p>
-              <p className="text-sm normal-case break-words">{scannedValue}</p>
+      {/* History */}
+      <div className="mt-4 animate-fadeInUp stagger-3">
+        <p className="text-[10px] t-tertiary tracking-[0.2em] font-bold mb-3">HISTORIA TRANSAKCJI</p>
+        {history.length === 0 && !loading && (
+          <p className="text-xs t-tertiary text-center py-8">Brak transakcji</p>
+        )}
+        <div className="flex flex-col gap-2">
+          {history.map((tx) => (
+            <div key={tx.id} className="cs-card p-3.5 flex items-center gap-3">
+              <div className={`w-9 h-9 rounded-full flex items-center justify-center ${tx.amount >= 0 ? "bg-green-500/10" : "bg-red-500/10"}`}>
+                {tx.amount >= 0 ? <ArrowDownLeft size={16} className="text-green-500" /> : <ArrowUpRight size={16} className="text-red-500" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold tracking-wider truncate">{tx.description}</p>
+                <p className="text-[9px] t-tertiary mt-0.5">{new Date(tx.created_at).toLocaleDateString("pl-PL")}</p>
+              </div>
+              <span className={`text-sm font-bold ${tx.amount >= 0 ? "text-green-500" : "text-red-500"}`}>
+                {tx.amount >= 0 ? "+" : ""}{tx.amount.toFixed(2)}
+              </span>
             </div>
-          ) : null}
-        </section>
+          ))}
+        </div>
+      </div>
+
+      {/* Topup modal */}
+      {showTopup && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end safe-bottom">
+          <div className="w-full max-w-md mx-auto rounded-t-3xl p-6 animate-slideUp" style={{ background: "var(--app-panel-solid)", borderTop: "1px solid rgba(252,160,0,0.2)" }}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-bold tracking-[0.2em]">DOŁADOWANIE</h2>
+              <button onClick={() => setShowTopup(false)} className="p-2 rounded-full hover:bg-white/10"><X size={18} /></button>
+            </div>
+            <div className="flex gap-2 mb-3">{quickAmounts.map((q) => (
+              <button key={q} onClick={() => setAmount(String(q))} className="flex-1 cs-card py-2 text-center text-xs font-bold tracking-wider active:scale-95">{q} PLN</button>
+            ))}</div>
+            <input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Kwota PLN" type="number" className="cs-input mb-3" />
+            {error && <p className="text-red-400 text-xs mb-2 normal-case">{error}</p>}
+            <button onClick={doTopup} disabled={!Number(amount)} className="cs-btn w-full rounded-xl text-xs">DOŁADUJ</button>
+          </div>
+        </div>
       )}
 
-      {mode === "show" && (
-        <section className="cs-panel rounded-xl p-5 flex-1 flex flex-col items-center justify-center gap-4 text-center">
-          <QrCode size={40} className="text-cs-orange" />
-          <div className="bg-white p-3 rounded-lg">
-            <QRCodeCanvas value={paymentQrValue} size={210} />
+      {/* Transfer modal */}
+      {showTransfer && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end safe-bottom">
+          <div className="w-full max-w-md mx-auto rounded-t-3xl p-6 animate-slideUp" style={{ background: "var(--app-panel-solid)", borderTop: "1px solid rgba(252,160,0,0.2)" }}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-bold tracking-[0.2em]">PRZELEW</h2>
+              <button onClick={() => setShowTransfer(false)} className="p-2 rounded-full hover:bg-white/10"><X size={18} /></button>
+            </div>
+            <input value={to} onChange={(e) => setTo(e.target.value)} placeholder="Odbiorca" className="cs-input mb-3" />
+            <input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Kwota PLN" type="number" className="cs-input mb-3" />
+            <input value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Tytuł przelewu (opcjonalnie)" className="cs-input mb-3" />
+            {error && <p className="text-red-400 text-xs mb-2 normal-case">{error}</p>}
+            <button onClick={doTransfer} disabled={!Number(amount) || !to.trim()} className="cs-btn w-full rounded-xl text-xs">WYŚLIJ</button>
           </div>
-          <p className="text-sm text-white/80 normal-case">Pokaż ten kod, aby odebrać płatność.</p>
-        </section>
+        </div>
       )}
     </div>
   );

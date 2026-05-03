@@ -23,28 +23,28 @@ export default function JobsPage() {
   );
 
   return (
-    <div className="min-h-[100dvh] max-w-md mx-auto p-4 flex flex-col gap-4">
-      <header className="flex items-center gap-3 cs-panel p-4 rounded-md">
-        <Link href="/" className="text-cs-orange hover:bg-white/5 p-2 rounded-full"><ChevronLeft size={28} /></Link>
-        <h1 className="text-lg font-bold tracking-widest uppercase flex items-center gap-2"><BriefcaseBusiness size={18} className="text-cs-orange" /> Praca</h1>
+    <div className="min-h-[100dvh] max-w-md mx-auto flex flex-col gap-3 px-3 pt-3 pb-24 safe-bottom">
+      <header className="cs-header animate-fadeInUp">
+        <Link href="/" className="t-accent hover:bg-white/5 p-2 rounded-full"><ChevronLeft size={28} /></Link>
+        <h1 className="text-lg font-bold tracking-widest uppercase flex items-center gap-2"><BriefcaseBusiness size={18} className="t-accent" /> Praca</h1>
       </header>
 
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" size={16} />
-        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Szukaj ofert..." className="w-full bg-[#1a1a1a] border border-white/10 rounded-md pl-9 pr-3 py-3 text-sm" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 t-tertiary" size={16} />
+        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Szukaj ofert..." className="w-full bg-panel-solid  rounded-xl pl-9 pr-3 py-3 text-sm" />
       </div>
 
       <div className="flex flex-col gap-3">
         {filtered.map((job) => {
           const applied = appliedIds.includes(job.id);
           return (
-            <article key={job.id} className="cs-panel p-4 rounded-md border border-white/10">
+            <article key={job.id} className="cs-card p-4">
               <h2 className="font-bold text-sm">{job.title}</h2>
-              <p className="text-xs text-white/60 mt-1 flex items-center gap-1"><Building2 size={12} /> {job.company} - {job.city}</p>
-              <p className="text-cs-orange text-sm font-bold mt-2">{job.salary}</p>
+              <p className="text-xs t-secondary mt-1 flex items-center gap-1"><Building2 size={12} /> {job.company} - {job.city}</p>
+              <p className="t-accent text-sm font-bold mt-2">{job.salary}</p>
               <button
                 onClick={() => setAppliedIds((prev) => (applied ? prev : [...prev, job.id]))}
-                className={`mt-3 w-full rounded-md py-2 text-xs font-bold tracking-widest ${applied ? "bg-green-600/20 border border-green-500 text-green-400" : "cs-btn"}`}
+                className={`mt-3 w-full rounded-xl py-2 text-xs font-bold tracking-widest ${applied ? "bg-green-600/20 border border-green-500 text-green-400" : "cs-btn"}`}
               >
                 {applied ? "WYSŁANO CV" : "APLIKUJ"}
               </button>
@@ -53,7 +53,7 @@ export default function JobsPage() {
         })}
       </div>
 
-      <button className="cs-btn rounded-md mt-auto flex items-center justify-center gap-2"><Send size={14} /> Mój profil zawodowy</button>
+      <button className="cs-btn rounded-2xl mt-auto flex items-center justify-center gap-2"><Send size={14} /> Mój profil zawodowy</button>
     </div>
   );
 }

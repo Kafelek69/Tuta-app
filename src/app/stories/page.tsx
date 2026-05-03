@@ -1,185 +1,237 @@
-'use client';
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { ChevronLeft, X, Heart, Send, MoreHorizontal } from 'lucide-react';
+"use client";
+import React, { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
+import { ChevronLeft, X, Heart, Send, Camera, Plus } from "lucide-react";
 
 const MOCK_STORIES = [
   {
-    id: 's1',
-    user: 'S1mple',
-    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&q=80',
+    id: "s1", user: "S1mple",
     items: [
-      { id: 'i1', type: 'image', url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&q=80', duration: 5000 },
-      { id: 'i2', type: 'image', url: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&q=80', duration: 5000 },
+      { id: "i1", url: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&q=80", duration: 5000 },
+      { id: "i2", url: "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&q=80", duration: 5000 },
     ],
-    timestamp: '2h'
+    timestamp: "2h",
   },
   {
-    id: 's2',
-    user: 'PashaBiceps',
-    avatar: 'https://images.unsplash.com/photo-1633332755192-727a05c4013P?w=100&q=80',
+    id: "s2", user: "PashaBiceps",
     items: [
-      { id: 'i3', type: 'image', url: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800&q=80', duration: 5000 },
+      { id: "i3", url: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800&q=80", duration: 5000 },
     ],
-    timestamp: '5h'
+    timestamp: "5h",
   },
   {
-    id: 's3',
-    user: 'NEO',
-    avatar: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=100&q=80',
+    id: "s3", user: "NEO",
     items: [
-      { id: 'i4', type: 'image', url: 'https://images.unsplash.com/photo-1552820728-8b83bb6b773f?w=800&q=80', duration: 5000 },
-      { id: 'i5', type: 'image', url: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=800&q=80', duration: 5000 },
-      { id: 'i6', type: 'image', url: 'https://images.unsplash.com/photo-1587840104736-524ba5fcecf8?w=800&q=80', duration: 4000 },
+      { id: "i4", url: "https://images.unsplash.com/photo-1552820728-8b83bb6b773f?w=800&q=80", duration: 5000 },
+      { id: "i5", url: "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=800&q=80", duration: 5000 },
+      { id: "i6", url: "https://images.unsplash.com/photo-1587840104736-524ba5fcecf8?w=800&q=80", duration: 4000 },
     ],
-    timestamp: '1h'
-  }
+    timestamp: "1h",
+  },
 ];
+
+function StoryAvatar({ name, size = 56 }: { name: string; size?: number }) {
+  const colors = ["#f97316","#8b5cf6","#06b6d4","#ec4899","#10b981","#f59e0b","#6366f1","#14b8a6"];
+  const idx = name.split("").reduce((a, c) => a + c.charCodeAt(0), 0) % colors.length;
+  return (
+    <div
+      className="flex items-center justify-center rounded-full font-black text-black tracking-wider shrink-0"
+      style={{ width: size, height: size, background: `linear-gradient(135deg, ${colors[idx]}, ${colors[(idx+2)%8]})`, fontSize: size * 0.3 }}
+    >
+      {name.slice(0, 2).toUpperCase()}
+    </div>
+  );
+}
 
 export default function StoriesFeed() {
   const [activeUserIdx, setActiveUserIdx] = useState<number | null>(null);
   const [activeStoryIdx, setActiveStoryIdx] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [liked, setLiked] = useState(false);
 
   const activeUser = activeUserIdx !== null ? MOCK_STORIES[activeUserIdx] : null;
   const activeStory = activeUser?.items[activeStoryIdx] || null;
 
-  const closeStories = () => {
+  const closeStories = useCallback(() => {
     setActiveUserIdx(null);
     setActiveStoryIdx(0);
     setProgress(0);
-  };
+    setLiked(false);
+  }, []);
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (!activeUser) return;
+    setLiked(false);
     if (activeStoryIdx < activeUser.items.length - 1) {
-      setActiveStoryIdx(prev => prev + 1);
+      setActiveStoryIdx((prev) => prev + 1);
       setProgress(0);
     } else if (activeUserIdx !== null && activeUserIdx < MOCK_STORIES.length - 1) {
-      setActiveUserIdx(prev => (prev !== null ? prev + 1 : null));
+      setActiveUserIdx((prev) => (prev !== null ? prev + 1 : null));
       setActiveStoryIdx(0);
       setProgress(0);
     } else {
       closeStories();
     }
-  };
+  }, [activeUser, activeStoryIdx, activeUserIdx, closeStories]);
 
-  const handlePrev = () => {
+  const handlePrev = useCallback(() => {
     if (!activeUser) return;
+    setLiked(false);
     if (activeStoryIdx > 0) {
-      setActiveStoryIdx(prev => prev - 1);
+      setActiveStoryIdx((prev) => prev - 1);
       setProgress(0);
     } else if (activeUserIdx !== null && activeUserIdx > 0) {
-      setActiveUserIdx(prev => (prev !== null ? prev - 1 : null));
-      setActiveStoryIdx(MOCK_STORIES[activeUserIdx - 1].items.length - 1);
+      const prevIdx = activeUserIdx - 1;
+      setActiveUserIdx(prevIdx);
+      setActiveStoryIdx(MOCK_STORIES[prevIdx].items.length - 1);
       setProgress(0);
-    } else {
-      closeStories();
     }
-  };
+  }, [activeUser, activeStoryIdx, activeUserIdx]);
 
   useEffect(() => {
     if (!activeUser || !activeStory) return;
-
-    const intervalCheck = 50;
-    const step = (intervalCheck / activeStory.duration) * 100;
-    
+    const step = (50 / activeStory.duration) * 100;
     const timer = setInterval(() => {
       setProgress((prev) => {
-        if (prev + step >= 100) {
-          handleNext();
-          return 0;
-        }
+        if (prev + step >= 100) { handleNext(); return 0; }
         return prev + step;
       });
-    }, intervalCheck);
-
+    }, 50);
     return () => clearInterval(timer);
-  }, [activeUserIdx, activeStoryIdx, activeStory, activeUser]);
+  }, [activeUserIdx, activeStoryIdx, activeStory, activeUser, handleNext]);
 
   return (
-    <div className="bg-[#1e1e1e] min-h-screen text-white relative">
+    <div className="min-h-[100dvh] max-w-md mx-auto flex flex-col pb-24 safe-bottom">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-[#333]">
-        <div className="flex items-center space-x-4">
-          <Link href="/feed" className="p-2 hover:bg-[#333] rounded-full transition">
-            <ChevronLeft size={24} />
-          </Link>
-          <h1 className="text-xl font-bold uppercase tracking-wider text-orange-500">RELACJE</h1>
+      <header className="cs-header mx-3 mt-3 animate-fadeInUp">
+        <Link href="/" className="text-[#fca000] hover:bg-white/5 p-2 rounded-full transition-colors">
+          <ChevronLeft size={24} />
+        </Link>
+        <div className="flex-1">
+          <h1 className="text-base font-black tracking-[0.2em]">RELACJE</h1>
+          <p className="text-[10px] text-white/40 tracking-wider mt-0.5">STORIES OD ZNAJOMYCH</p>
+        </div>
+        <Camera size={20} className="text-[#fca000]" />
+      </header>
+
+      {/* Add your story */}
+      <div className="px-3 mt-4 animate-fadeInUp stagger-1">
+        <div className="cs-card p-4 flex items-center gap-4">
+          <div className="relative">
+            <div className="w-14 h-14 rounded-full bg-white/5 border-2 border-dashed border-[#fca000]/40 flex items-center justify-center">
+              <Plus size={22} className="text-[#fca000]" />
+            </div>
+          </div>
+          <div>
+            <p className="text-sm font-bold tracking-wider">Dodaj relację</p>
+            <p className="text-[10px] text-white/40 tracking-wider mt-0.5">Zniknie po 24h</p>
+          </div>
         </div>
       </div>
 
-      {/* Stories list */}
-      <div className="p-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Stories grid */}
+      <div className="px-3 mt-4">
+        <p className="text-[10px] text-white/40 tracking-[0.2em] mb-3 font-bold">DOSTĘPNE RELACJE</p>
+        <div className="grid grid-cols-3 gap-3">
           {MOCK_STORIES.map((story, idx) => (
-            <div 
-              key={story.id} 
-              className="relative aspect-[9/16] rounded-xl overflow-hidden cursor-pointer border-2 border-transparent hover:border-orange-500 transition-colors"
-              onClick={() => {
-                setActiveUserIdx(idx);
-                setActiveStoryIdx(0);
-                setProgress(0);
-              }}
+            <div
+              key={story.id}
+              className="relative aspect-[9/14] rounded-2xl overflow-hidden cursor-pointer group animate-fadeInUp"
+              style={{ animationDelay: `${0.1 * idx}s`, opacity: 0 }}
+              onClick={() => { setActiveUserIdx(idx); setActiveStoryIdx(0); setProgress(0); setLiked(false); }}
             >
-              {/* Note: We use img tag to avoid next/image domains parsing errors for fast demo */}
-              <img src={story.items[0].url} alt={story.user} className="absolute inset-0 w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 rounded-full bg-orange-500 p-[2px]">
-                     <img src={story.avatar} alt={story.user} className="w-full h-full rounded-full object-cover bg-black" />
+              <img
+                src={story.items[0].url}
+                alt={story.user}
+                className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+              {/* Orange ring */}
+              <div className="absolute top-2.5 left-2.5">
+                <div className="p-[2px] rounded-full bg-gradient-to-br from-[#fca000] to-[#f97316]">
+                  <div className="bg-black rounded-full p-[1px]">
+                    <StoryAvatar name={story.user} size={30} />
                   </div>
-                  <span className="font-bold text-sm">{story.user}</span>
                 </div>
               </div>
+
+              <div className="absolute bottom-2.5 left-2.5 right-2.5">
+                <p className="font-bold text-xs truncate">{story.user}</p>
+                <p className="text-[9px] text-white/50 mt-0.5">{story.timestamp}</p>
+              </div>
+
+              {/* Hover border */}
+              <div className="absolute inset-0 rounded-2xl border-2 border-transparent group-hover:border-[#fca000]/50 transition-colors" />
             </div>
           ))}
         </div>
       </div>
 
-      {/* Story Overlay */}
+      {/* ===== FULLSCREEN STORY OVERLAY ===== */}
       {activeUser && activeStory && (
-        <div className="fixed inset-0 z-50 bg-[#000000] flex flex-col">
-          {/* Progress Bars */}
-          <div className="flex space-x-1 p-4 absolute top-0 w-full z-10">
+        <div className="fixed inset-0 z-50 bg-black flex flex-col safe-top safe-bottom">
+          {/* Progress bars */}
+          <div className="flex gap-1 px-3 pt-3 relative z-20">
             {activeUser.items.map((_, idx) => (
-              <div key={idx} className="h-1 flex-1 bg-white/30 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-orange-500 transition-all ease-linear"
-                  style={{ 
-                    width: idx < activeStoryIdx ? '100%' : idx === activeStoryIdx ? `${progress}%` : '0%'
+              <div key={idx} className="h-[3px] flex-1 bg-white/20 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all ease-linear"
+                  style={{
+                    width: idx < activeStoryIdx ? "100%" : idx === activeStoryIdx ? `${progress}%` : "0%",
+                    background: "linear-gradient(90deg, #fca000, #f97316)",
                   }}
                 />
               </div>
             ))}
           </div>
 
-          <div className="absolute top-6 left-0 right-0 p-4 flex items-center justify-between z-10">
-            <div className="flex items-center space-x-3">
-              <img src={activeUser.avatar} alt={activeUser.user} className="w-10 h-10 rounded-full border-2 border-orange-500 object-cover" />
+          {/* User info bar */}
+          <div className="flex items-center justify-between px-3 py-2 relative z-20">
+            <div className="flex items-center gap-3">
+              <div className="p-[2px] rounded-full bg-gradient-to-br from-[#fca000] to-[#f97316]">
+                <div className="bg-black rounded-full p-[1px]">
+                  <StoryAvatar name={activeUser.user} size={34} />
+                </div>
+              </div>
               <div>
-                <p className="font-bold">{activeUser.user}</p>
-                <p className="text-xs text-gray-400">{activeUser.timestamp}</p>
+                <p className="font-bold text-sm tracking-wider">{activeUser.user}</p>
+                <p className="text-[10px] text-white/40">{activeUser.timestamp}</p>
               </div>
             </div>
-            <button onClick={closeStories} className="p-2 hover:bg-white/20 rounded-full transition">
-              <X size={24} />
+            <button onClick={closeStories} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+              <X size={22} />
             </button>
           </div>
 
-          {/* Touch areas for nav */}
-          <div className="absolute inset-0 flex">
-            <div className="w-1/3 flex-shrink-0 z-0" onClick={handlePrev} />
-            <div className="w-2/3 flex-shrink-0 z-0" onClick={handleNext} />
+          {/* Touch nav */}
+          <div className="absolute inset-0 flex z-10">
+            <div className="w-1/3" onClick={handlePrev} />
+            <div className="w-2/3" onClick={handleNext} />
           </div>
 
-          <img src={activeStory.url} alt="Story" className="w-full h-full object-cover" />
+          {/* Image */}
+          <img src={activeStory.url} alt="Story" className="w-full flex-1 object-cover" />
 
-          {/* Footer Controls */}
-          <div className="absolute bottom-0 w-full p-4 flex items-center space-x-4 bg-gradient-to-t from-black z-10">
-            <input type="text" placeholder="Wyślij wiadomość..." className="flex-1 bg-transparent border border-gray-600 rounded-full py-2 px-4 focus:outline-none focus:border-orange-500" />
-            <button className="text-white hover:text-orange-500"><Heart size={24} /></button>
-            <button className="text-white hover:text-orange-500"><Send size={24} /></button>
+          {/* Bottom controls */}
+          <div className="relative z-20 px-3 py-3 flex items-center gap-3 bg-gradient-to-t from-black/80 to-transparent">
+            <input
+              type="text"
+              placeholder="Wyślij wiadomość..."
+              className="flex-1 bg-transparent border border-white/20 rounded-full py-2.5 px-4 text-sm focus:outline-none focus:border-[#fca000]/50 placeholder:text-white/30"
+            />
+            <button
+              onClick={() => setLiked((p) => !p)}
+              className="p-2"
+            >
+              <Heart
+                size={24}
+                className={`transition-all ${liked ? "fill-red-500 text-red-500 animate-heartBeat" : "text-white hover:text-red-400"}`}
+              />
+            </button>
+            <button className="p-2 text-white hover:text-[#fca000] transition-colors">
+              <Send size={22} />
+            </button>
           </div>
         </div>
       )}

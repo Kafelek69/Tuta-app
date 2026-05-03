@@ -7,6 +7,8 @@ type PostRow = {
   author: string;
   content: string;
   createdAt: string;
+  likeCount: number;
+  likedByMe: number;
 };
 
 type NewPostBody = {
@@ -26,27 +28,22 @@ export async function GET(request: Request) {
 
   const cursor = cursorParam ? Number(cursorParam) : null;
 
+  const baseQuery = `
+    SELECT p.id, u.username as author, p.content, p.created_at as createdAt,
+      COALESCE((SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id = p.id), 0) as likeCount,
+      COALESCE((SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id = p.id AND pl.user_id = ?), 0) as likedByMe
+    FROM feed_posts p
+    JOIN users u ON u.id = p.author_user_id
+  `;
+
   const posts = cursor
     ? await all<PostRow>(
-        `
-          SELECT p.id, u.username as author, p.content, p.created_at as createdAt
-          FROM feed_posts p
-          JOIN users u ON u.id = p.author_user_id
-          WHERE p.id < ?
-          ORDER BY p.id DESC
-          LIMIT ?
-        `,
-        [cursor, limit],
+        `${baseQuery} WHERE p.id < ? ORDER BY p.id DESC LIMIT ?`,
+        [currentUser.userId, cursor, limit],
       )
     : await all<PostRow>(
-        `
-          SELECT p.id, u.username as author, p.content, p.created_at as createdAt
-          FROM feed_posts p
-          JOIN users u ON u.id = p.author_user_id
-          ORDER BY p.id DESC
-          LIMIT ?
-        `,
-        [limit],
+        `${baseQuery} ORDER BY p.id DESC LIMIT ?`,
+        [currentUser.userId, limit],
       );
 
   const nextCursor = posts.length > 0 ? posts[posts.length - 1]?.id ?? null : null;
