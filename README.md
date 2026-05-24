@@ -34,3 +34,7 @@ Aplikacja jest rozwijana w nowoczesnym stosie technologicznym:
 - **Infrastruktura:** Docker, Kubernetes
 
 ---
+
+## 📃 TO DO
+
+- **TOO MANY:** i lost count long ago
